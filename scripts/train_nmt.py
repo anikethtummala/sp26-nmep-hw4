@@ -65,7 +65,7 @@ def train_nmt():
 
     data_path = Path("data/nmt/europarl/")
     dataset = FrEnDataset(data_path)
-    dataloader = DataLoader(dataset, batch_size=4, shuffle=True, collate_fn=collate_fn)
+    dataloader = DataLoader(dataset, batch_size=8, shuffle=True, collate_fn=collate_fn)
 
     vocab_size = len(tokenizer.vocab)
     num_layers = 6

@@ -91,7 +91,7 @@ class MultiHeadAttention(nn.Module):
             mask: Optional boolean torch.Tensor, broadcastable to (B, num_heads, T, T).
         """
         if mask is not None:
-            return torch.matmul(torch.softmax((torch.where(mask, -float('inf'), 0.0) + torch.matmul(Q, torch.transpose(K, 2, 3)))/(self.qk_length ** 0.5), dim=-1), V)
+            return torch.matmul(torch.softmax((torch.matmul(Q, torch.transpose(K, 2, 3)).masked_fill(mask == 1, float('-inf')))/(self.qk_length ** 0.5), dim=-1), V)
         else:
             return torch.matmul(torch.softmax(torch.matmul(Q, torch.transpose(K, 2, 3))/(self.qk_length ** 0.5), dim=-1), V)
         

@@ -85,4 +85,3 @@ class TestMultiHeadAttention(unittest.TestCase):
         out = self.mha(x, x, x, mask=causal_mask)
 
         self.assertEqual(out.shape, (self.batch_size, self.seq_len, self.embedding_dim))
-

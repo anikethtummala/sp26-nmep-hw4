@@ -78,8 +78,17 @@ class EncoderLayer(nn.Module):
         self.qk_length = qk_length
         self.value_length = value_length
 
+
         # Define any layers you'll need in the forward pass
-        raise NotImplementedError("Need to implement vocab initialization.")
+        self.q_weight = nn.Linear(self.embedding_dim, self.num_heads*self.qk_length)
+        self.k_weight = nn.Linear(self.embedding_dim, self.num_heads*self.qk_length)
+        self.v_weight = nn.Linear(self.embedding_dim, self.num_heads*self.value_length)
+
+        self.mha_layer = MultiHeadAttention(self.num_heads, self.embedding_dim, self.qk_length, self.value_length)
+        self.ff_layer = FeedForwardNN(self.embedding_dim, self.ffn_hidden_dim)
+        self.dropout_layer = nn.Dropout(dropout)
+        self.ln1_layer = nn.LayerNorm(self.embedding_dim)
+        self.ln2_layer = nn.LayerNorm(self.embedding_dim)
 
     def forward(
         self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
@@ -87,7 +96,13 @@ class EncoderLayer(nn.Module):
         """
         The forward pass of the EncoderLayer.
         """
-        raise NotImplementedError("Need to implement forward pass of EncoderLayer.")
+        Q, K, V = self.q_weight(x), self.k_weight(x), self.v_weight(x)
+
+        out = x + self.dropout_layer(self.mha_layer(Q, K, V, mask))
+        out = self.ln1_layer(out)
+        out = out + self.dropout_layer(self.ff_layer(out))
+        out = self.ln2_layer(out)
+        return out
 
 
 class Encoder(nn.Module):
@@ -140,12 +155,19 @@ class Encoder(nn.Module):
         # so we'll have to first create some kind of embedding
         # and then use the other layers we've implemented to
         # build out the Transformer encoder.
-        raise NotImplementedError("Need to implement Encoder layers")
+        
+        self.embedding = nn.Embedding(self.vocab_size, self.embedding_dim)
+        self.pe = PositionalEncoding(self.embedding_dim, dropout, max_length)
+        self.encoder_layers = nn.ModuleList([EncoderLayer(self.num_heads, self.embedding_dim, self.ffn_hidden_dim, self.qk_length, self.value_length, dropout) for _ in range(self.num_layers)])
 
 
     def forward(self, x: torch.Tensor, src_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         The forward pass of the Encoder.
         """
-        raise NotImplementedError("Need to implement forward pass of Encoder")
-
+        x = x.long()
+        out = self.embedding(x)
+        out = self.pe(out)
+        for layer in self.encoder_layers:
+            out = layer(out, src_mask)
+        return out
